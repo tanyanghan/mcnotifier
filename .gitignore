@@ -1,0 +1,21 @@
+# Environment
+.env
+
+# Virtual environment
+.venv/
+
+# Claude
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Bot runtime state
+auth.json
+player_names.json
+logs/
+
+# IDE
+.idea/
+.vscode/
