@@ -564,6 +564,18 @@ def main():
     observer.start()
     logger.info("Watching %s for join/leave events", LOG_PATH)
 
+    class _NetworkErrorFilter(logging.Filter):
+        _NETWORK_PHRASES = ("Network is unreachable", "NewConnectionError", "Max retries exceeded")
+
+        def filter(self, record):
+            msg = record.getMessage()
+            if any(phrase in msg for phrase in self._NETWORK_PHRASES):
+                logger.warning("Polling: network unreachable, retrying...")
+                return False  # suppress from TeleBot logger
+            return True
+
+    logging.getLogger("TeleBot").addFilter(_NetworkErrorFilter())
+
     try:
         bot.infinity_polling()
     except KeyboardInterrupt:
