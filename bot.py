@@ -38,7 +38,7 @@ def setup_logging(logs_dir: Path) -> None:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     log_file = logs_dir / f"log_{timestamp}.txt"
 
-    fmt = logging.Formatter("%(asctime)s  %(levelname)-8s  %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    fmt = logging.Formatter("%(asctime)s  %(name)-12s  %(levelname)-8s  %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
     file_handler = logging.FileHandler(log_file, encoding="utf-8")
     file_handler.setFormatter(fmt)
@@ -49,6 +49,9 @@ def setup_logging(logs_dir: Path) -> None:
     logger.setLevel(logging.DEBUG)
     logger.addHandler(file_handler)
     logger.addHandler(stream_handler)
+
+    telebot_logger = logging.getLogger("TeleBot")
+    telebot_logger.addHandler(file_handler)
 
     logger.info("Logging started — writing to %s", log_file)
 
@@ -565,13 +568,22 @@ def main():
     logger.info("Watching %s for join/leave events", LOG_PATH)
 
     class _NetworkErrorFilter(logging.Filter):
-        _NETWORK_PHRASES = ("Network is unreachable", "NewConnectionError", "Max retries exceeded")
+        _TRANSIENT = (
+            ("Network is unreachable", "network unreachable"),
+            ("NewConnectionError",     "network unreachable"),
+            ("Max retries exceeded",   "network unreachable"),
+            ("Read timed out",         "read timed out"),
+            ("read operation timed out", "read timed out"),
+            ("handshake operation timed out", "SSL handshake timed out"),
+            ("Bad Gateway",            "Telegram returned 502 Bad Gateway"),
+        )
 
         def filter(self, record):
             msg = record.getMessage()
-            if any(phrase in msg for phrase in self._NETWORK_PHRASES):
-                logger.warning("Polling: network unreachable, retrying...")
-                return False  # suppress from TeleBot logger
+            for phrase, description in self._TRANSIENT:
+                if phrase in msg:
+                    logger.warning("Polling: %s, retrying...", description)
+                    return False  # suppress from TeleBot logger
             return True
 
     logging.getLogger("TeleBot").addFilter(_NetworkErrorFilter())
