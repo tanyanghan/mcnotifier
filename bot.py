@@ -582,14 +582,16 @@ def main():
             msg = record.getMessage()
             for phrase, description in self._TRANSIENT:
                 if phrase in msg:
-                    logger.warning("Polling: %s, retrying...", description)
+                    # Only log warning for the exception line, not the traceback
+                    if "Exception traceback" not in msg:
+                        logger.warning("Polling: %s, retrying...", description)
                     return False  # suppress from TeleBot logger
             return True
 
     logging.getLogger("TeleBot").addFilter(_NetworkErrorFilter())
 
     try:
-        bot.infinity_polling()
+        bot.infinity_polling(timeout=30, long_polling_timeout=20)
     except KeyboardInterrupt:
         pass
     finally:
