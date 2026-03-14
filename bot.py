@@ -576,6 +576,7 @@ def main():
             ("read operation timed out", "read timed out"),
             ("handshake operation timed out", "SSL handshake timed out"),
             ("Bad Gateway",            "Telegram returned 502 Bad Gateway"),
+            ("Connection reset by peer", "connection reset by peer"),
         )
 
         def filter(self, record):
